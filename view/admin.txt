@@ -1,0 +1,414 @@
+  <template> 
+   <section> 
+    <el-col :span="24" class="toolbar" style="padding-bottom: 0px"> 
+     <el-form :inline="true">
+       {{ with .Record }} {{ range .Cols }} {{if .Queryable}} 
+
+        <el-form-item label="{{.Label}}">
+            
+            {{if gt (len .Candidate) 0 }}
+              <el-select size="mini" filterable clearable v-model{{if eq .Type 1}}.number{{end}}="query.{{.Prop}}" placeholder="请选择{{.Label}}">
+              <el-option v-for="item in this.{{.Prop}}Candidate"
+                        :key="item.key"
+                        :value="item.key"
+                        :label="item.value">
+              <span style="float: left">{{"{{"}} "[ " + item.key + " ] - " + item.value {{"}}"}}</span>
+              </el-option>
+              </el-select>
+
+            {{else}}
+              <el-input clearable v-model{{if eq .Type 1}}.number{{end}}="query.{{ .Prop}}" {{if ne .Placeholder ""}}placeholder="{{ .Placeholder}}" {{end}}></el-input>
+            {{end}}
+
+        </el-form-item> 
+
+
+      
+      {{end}} {{ end }} {{ end }} 
+      <el-form-item> 
+       <el-button size="mini" type="primary" v-on:click="queryData">
+        查询
+       </el-button> 
+      </el-form-item> 
+      <el-form-item> 
+       <el-button size="mini" type="primary" v-on:click="handleAdd">
+        添加
+       </el-button> 
+      </el-form-item> 
+     </el-form> 
+    </el-col> 
+
+
+    <el-table size="small" height="{{.Height}}" :data="data" highlight-current-row="" v-loading="listLoading" @selection-change="selsChange" style="width: 100%">
+      {{ with .Record }} 
+        {{ range .Cols }} 
+          {{if .ShowInTable}} 
+            <el-table-column prop="{{.Prop}}" label="{{.Label}}" width="{{.Width}}" style="color: {{ .Color}}">
+              {{if .ShowImage}} 
+                <template slot-scope="scope"> 
+                    <img :src="scope.row.{{.Prop}}" v-if="scope.row.{{.Prop}}.indexOf(Domain) != -1" style="width: 100px; height: 54px" /> 
+                    <img :src="Domain + scope.row.{{.Prop}}" v-if="scope.row.{{.Prop}}.indexOf(Domain) == -1" style="width: 100px; height: 54px" /> 
+                </template> 
+              {{end}} 
+
+                {{if gt (len .Candidate) 0}}
+                {{ $propTemp := .Prop}}
+                {{ $colorTemp := .Color}}
+                {{ $autoColor := .AutoColor}}
+                <template slot-scope="scope">
+                {{range  $key, $value := .Candidate}}
+                    <span v-if="scope.row.{{ $propTemp}} == '{{$key}}'" style="color: {{if $autoColor}} {{$key}} {{else}} {{$colorTemp}} {{end}}"><b>{{$value}}</b></span>
+              {{end}}
+               </template>
+              {{end}}
+
+
+
+            </el-table-column> 
+          {{end}}
+             {{end}}
+          
+        <el-table-column label="操作" min-width="150">
+         <template slot-scope="scope"> 
+          {{if .Editable}} 
+              <el-button
+              type="success"
+              icon="el-icon-check"
+              size="small"
+              @click="handleEdit(scope.$index, scope.row)"
+              >编辑
+            </el-button>
+          {{end}}
+
+
+          {{if .Deleteable}}
+            <el-button
+                      size="small"
+                      type="danger"
+                      icon="el-icon-delete"
+                      @click="handleDel(scope.$index, scope.row)"
+                      >删除
+                    </el-button>
+          {{end}}       
+          </template>
+        </el-table-column>
+    {{end}}
+ 
+    </el-table>
+
+    <el-col :span="24" class="toolbar">
+      <el-pagination
+        layout="prev, pager, next"
+        :current-page="page"
+        :page-size="page_size"
+        :total="total"
+        @current-change="handleCurrentChange"
+        style="float: right"
+      >
+      </el-pagination>
+    </el-col>
+
+    <el-dialog title="新增" :visible.sync="addFormVisible" :close-on-click-modal="false">
+      <el-form :model="addForm" label-width="200px" ref="addForm">
+
+      {{ with .Record }} 
+        {{ range .Cols }} 
+          {{ if .Addable}}
+          {{if .ShowImage}}
+            <el-form-item label="{{.Label}}" {{if .Required}} required {{end}} >
+              <el-upload class="avatar-uploader" action="/vueAdmin/yunGame/uploadToAliOss" :data="uploadBG" :show-file-list="false" :on-success="handleUpload{{Cap .Prop}}Success"> 
+                <i v-if="!addForm.{{.Prop}}" class="el-icon-plus avatar-uploader-icon"></i> 
+                <img :src="addForm.{{.Prop}}" v-else-if="addForm.{{.Prop}}.indexOf(Domain) != -1" class="avatar" /> 
+                <img :src="Domain + addForm.{{.Prop}}" v-else-if="addForm.{{.Prop}}.indexOf(Domain) == -1" class="avatar" /> 
+              </el-upload>  
+            </el-form-item> 
+
+          {{else}}
+
+            <el-form-item label="{{.Label}}"  {{if .Required}} required {{end}}>
+            
+            {{if gt (len .Candidate) 0 }}
+              <el-select size="mini" filterable v-model{{if eq .Type 1}}.number{{end}}="addForm.{{.Prop}}" placeholder="请选择{{.Label}}">
+              <el-option v-for="item in this.{{.Prop}}Candidate"
+                        :key="item.key"
+                        :value="item.key"
+                        :label="item.value">
+              <span style="float: left">{{"{{"}} "[ " + item.key + " ] - " + item.value {{"}}"}}</span>
+              </el-option>
+              </el-select>
+
+            {{else}}
+              <el-input v-model{{if eq .Type 1}}.number{{end}}="addForm.{{ .Prop}}" {{if ne .Placeholder ""}}placeholder="{{ .Placeholder}}" {{end}}></el-input>
+            {{end}}
+
+              
+            </el-form-item>      
+         
+          {{end}}
+          {{end}}
+
+        {{end}}
+      {{end}}
+
+      </el-form>
+    
+       <div slot="footer" class="dialog-footer"> 
+        <el-button @click.native="addFormVisible = false">
+         取消
+        </el-button> 
+        <el-button type="primary" @click.native="addSubmit" :loading="addLoading">
+         提交
+        </el-button> 
+       </div>  
+             
+       </el-dialog>
+
+
+
+
+       
+
+
+   </section> 
+  </template> 
+
+  <script>
+import util from "../../common/js/util";
+import { handleResToLogin, postRequest } from "../../api/api";
+import model from "../../common/js/model";
+
+export default {
+  data() {
+    return {
+      Domain: util.Domain,
+      query: {
+      },
+
+      page: {{ .QueryPage}},
+      page_size: {{ .QueryPageSize}},
+      total: 0,
+      data: [],
+
+      uploadBG: {
+        changeName: "true",
+        bucketName:  {{if .BucketName}} {{ .BucketName}} {{else}}  "d-cloud-game" {{end}},
+        resultStructType: "12",
+        aliOssPath:  {{if .AliOssPath}} {{ .AliOssPath}} {{else}} "static/icon_frame" {{end}},
+      },
+
+      addFormVisible: false, 
+      addForm: {
+      },
+      addLoading: false,
+      loading: false,
+      listLoading: false,
+
+
+      // Candidate
+       {{ with .Record }} 
+        {{ range .Cols }} 
+
+        {{if gt (len .Candidate) 0}}
+
+        {{.Prop}}Candidate : [
+          {{range $key, $value := .Candidate}}
+          {"key": {{$key}}, "value":  {{$value}}},
+          {{end}}
+        ],
+
+        {{end}}
+
+        {{end}}
+        {{end}}
+
+
+    };
+  },
+  methods: {
+    clear() {
+       {{ with .Record }} 
+        {{ range .Cols }} 
+            {{if .Queryable}}
+             this.{{ .Prop}} = {{if eq .Type 1}} 0 {{else}} "" {{end}}
+            {{end}}
+
+        {{end}}
+        {{end}}
+      this.queryData();
+    },
+    queryData() {
+      let para = {
+
+        page: this.page,
+        page_size: this.page_size,
+
+      {{ with .Record }} 
+        {{ range .Cols }} 
+            {{if .Queryable}}
+              {{ .Prop}} : this.query.{{ .Prop}},
+            {{end}}
+        {{end}}
+      
+      {{end}}
+      };
+
+      this.listLoading = true;
+      var queryModel = model.GetQueryModel({{ .ControllerName}}, {{ if (eq .ListMethodName "") }}"List" {{else}} {{.ListMethodName}}  {{end}}, para);
+      postRequest(queryModel).then((res) => {
+        this.listLoading = false;
+        if (res.data.code > 0) {
+          this.$message({
+            message: res.data.msg,
+            type: "error",
+          });
+        } else {
+          this.data = res.data.datas;
+          this.total = res.data.total;
+        }
+        handleResToLogin(this.$router, res.data.code);
+      });
+    },
+
+    handleCurrentChange(val) {
+      this.page = val;
+      this.queryData();
+    },
+
+    handleAdd() {
+      this.addFormVisible = true;
+      this.addForm = {};
+    },
+
+
+
+    // 上传回调方法 
+     {{ with .Record }} 
+        {{ range .Cols }} 
+          {{ if .ShowImage}}
+
+handleUpload{{Cap .Prop}}Success: function (response, file, fileList) {
+      this.addForm.{{.Prop}} = response;
+    },
+
+          {{end}}
+        {{end}}
+    {{end}}
+
+
+    addSubmit: function () {
+      this.$refs.addForm.validate((valid) => {
+        if (valid) {
+          this.$confirm("确认提交吗？", "提示", {}).then(() => {
+            this.addLoading = true;
+            let para = Object.assign(
+              { _timestamp: Date.parse(new Date()) },
+              this.addForm
+            );
+            var queryModel = model.GetQueryModel(
+              {{ .ControllerName}},
+              {{ if (eq .AddMethodName "") }}"Add" {{else}} {{.AddMethodName}}  {{end}},
+              para
+            );
+            postRequest(queryModel).then((res) => {
+              this.addLoading = false;
+
+              if (res.data.code > 0) {
+                this.$message({
+                  message: res.data.msg,
+                  type: "error",
+                });
+                return;
+              }
+
+              let msg = "新增成功";
+              if (res.data.msg != "") {
+                msg = res.data.msg;
+              }
+              this.$message({
+                message: msg,
+                type: "success",
+              });
+              handleResToLogin(this.$router, res.data.code);
+              this.$refs["addForm"].resetFields();
+              this.addFormVisible = false;
+              this.queryData();
+            });
+          });
+        }
+      });
+    },
+
+    //显示编辑界面
+    handleEdit: function (index, row) {
+      this.addFormVisible = true;
+      this.addForm = Object.assign({}, row);
+    },
+
+
+    handleDel(index, row) {
+      this.$confirm("确认提交吗？", "提示", {}).then(() => {
+        let para = Object.assign(
+          { _timestamp: Date.parse(new Date()) },
+          { id: row.ID }
+        );
+        var queryModel = model.GetQueryModel({{ .ControllerName}}, {{ if (eq .DeleteMethodName "") }} "Delete" {{else}} {{ .DeleteMethodName}}  {{end}} , para);
+        postRequest(queryModel).then((res) => {
+          if (res.data.code > 0) {
+            this.$message({
+              message: res.data.msg,
+              type: "error",
+            });
+            return;
+          }
+
+          let msg = "删除成功";
+          if (res.data.msg != "") {
+            msg = res.data.msg;
+          }
+          this.$message({
+            message: msg,
+            type: "success",
+          });
+          handleResToLogin(this.$router, res.data.code);
+          this.queryData();
+        });
+      });
+    },
+
+    selsChange: function (sels) {
+      this.sels = sels;
+    },
+  },
+  mounted() {
+    this.queryData();
+  },
+};
+</script> 
+  <style scoped="">
+.avatar-uploader .el-upload {
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.avatar-uploader .el-upload:hover {
+  border-color: #409eff;
+}
+
+.avatar-uploader-icon {
+  font-size: 28px;
+  color: #8c939d;
+  width: 100px;
+  height: 100px;
+  line-height: 178px;
+  text-align: center;
+}
+
+.avatar {
+  width: 100px;
+  height: 100px;
+  display: block;
+}
+</style> 

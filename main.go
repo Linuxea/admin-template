@@ -70,7 +70,7 @@ func main() {
 			Width:       100,
 			Type:        view.String,
 			ShowInTable: true,
-			Queryable:   false,
+			Queryable:   true,
 			Addable:     true,
 			Candidate: map[interface{}]interface{}{
 				"BLUE":   "蓝色",
@@ -119,12 +119,13 @@ func main() {
 	}
 
 	record := view.Record{Cols: cols, Deleteable: true}
-	view := view.View{
+	View := view.View{
 		Record:         record,
 		Height:         650,
 		QueryPage:      1,
 		QueryPageSize:  30,
 		ControllerName: "ActivityTwentyOneYearEndPool",
+		ModelName:      "ActivityTwnetyOneYearEndModel",
 	}
 
 	t := template.Must(template.New("admin.txt").Funcs(template.FuncMap{
@@ -132,7 +133,16 @@ func main() {
 			return template.JS(strings.ToUpper(string(in[:1])) + strings.ToLower(string(in[1:])))
 		},
 	}).ParseFiles("view/admin.txt"))
-	if err := t.Execute(os.Stdout, view); err != nil {
+	if err := t.Execute(os.Stdout, View); err != nil {
+		panic(err)
+	}
+
+	t = template.Must(template.New("ctrl.txt").Funcs(template.FuncMap{
+		"Cap": func(in template.JS) template.JS {
+			return template.JS(strings.ToUpper(string(in[:1])) + strings.ToLower(string(in[1:])))
+		},
+	}).ParseFiles("view/ctrl.txt"))
+	if err := t.Execute(os.Stdout, View); err != nil {
 		panic(err)
 	}
 

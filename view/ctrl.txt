@@ -1,0 +1,66 @@
+
+type {{.ControllerName}} struct {
+	Name string
+}
+
+func (*{{.ControllerName}}) Add(param map[string]interface{}) *model.ResData {
+	res := new(model.ResData)
+	vo := new(model.{{.ModelName}})
+	if err := MapToStruct(param, vo); err != nil {
+		appzaplog.Error("error", zap.Error(err))
+		res.Code = errors.ErrorUnknow
+		res.Msg = "检测下请求数据格式"
+		return res
+	}
+
+	if err := db.DbRW.Save(vo).Error; err != nil {
+		res.Code = errors.ErrorUnknow
+		res.Msg = err.Error()
+		return res
+	}
+
+	return res
+}
+
+// List 列表
+func (*{{.ControllerName}}) List(param map[string]interface{}) *model.ResData {
+	res := new(model.ResData)
+
+	list := make([]*model.{{.ModelName}}, 0)
+	err := db.DbRW.Where(
+        &model.{{.ModelName}} : {
+
+             // 搜索参数
+            {{ range .Record.Cols }}
+                {{ if .Queryable }}
+                    {{Cap .Prop}} : {{ if ge .Type 1}}getIntValue{{else}}getStringValue{{end}}(param, "{{.Prop}}"),
+                {{end}}
+            {{end}}
+
+        }
+    ).Find(&list).Error
+	if err != nil {
+		res.Code = errors.ErrorUnknow
+		res.Msg = "检测下请求数据格式"
+		return res
+	}
+
+	res.Datas = list
+	res.Total = int32(len(list))
+	return res
+}
+
+func (*{{.ControllerName}}) Delete(param map[string]interface{}) *model.ResData {
+	res := new(model.ResData)
+	id := getIntValue(param, "id")
+	err := db.DbRW.Delete(&model.{{.ModelName}}{
+		Model: gorm.Model{ID: uint(id)},
+	}).Error
+	if err != nil {
+		res.Code = errors.ErrorUnknow
+		res.Msg = "检测下请求数据格式"
+		return res
+	}
+
+	return res
+}

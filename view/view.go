@@ -40,9 +40,10 @@ type View struct {
 	QueryPageSize    uint
 	BucketName       string
 	AliOssPath       string
-	ControllerName   string
 	AddMethodName    string
 	EditMethodName   string
 	DeleteMethodName string
 	ListMethodName   string
+	ControllerName   string
+	ModelName        string
 }

@@ -9,6 +9,7 @@ const (
 	String
 	Obj
 	List
+	Time
 )
 
 type Column struct {

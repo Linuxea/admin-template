@@ -111,6 +111,17 @@ func main() {
 			Candidate:   yesNo,
 		},
 		{
+			Prop:        "candidate",
+			Label:       "候选列表",
+			Width:       100,
+			Type:        view.String,
+			ShowInTable: true,
+			Color:       "green",
+			Addable:     true,
+			Placeholder: "例如:1->男,2->女, ... ...",
+		},
+
+		{
 			Prop:        "CreatedAt",
 			Label:       "创建时间",
 			Width:       100,

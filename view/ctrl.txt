@@ -1,3 +1,14 @@
+package controller 
+
+import (
+	"code.com/tars/goframework/kissgo/appzaplog"
+	"code.com/tars/goframework/kissgo/appzaplog/zap"
+	"github.com/jinzhu/gorm"
+	"niubigit.caijiyouxi.com/yungame/server/src/common/conf/db"
+	"niubigit.caijiyouxi.com/yungame/server/src/util/errors"
+	"niubigit.caijiyouxi.com/yungame/server/src/yunGame/admin/model"
+)
+
 
 type {{.ControllerName}} struct {
 	Name string
@@ -5,11 +16,11 @@ type {{.ControllerName}} struct {
 
 func (*{{.ControllerName}}) Add(param map[string]interface{}) *model.ResData {
 	res := new(model.ResData)
-	vo := new(model.{{.ModelName}})
+	vo := new({{.ModelName}})
 	if err := MapToStruct(param, vo); err != nil {
 		appzaplog.Error("error", zap.Error(err))
 		res.Code = errors.ErrorUnknow
-		res.Msg = "检测下请求数据格式"
+		res.Msg = err.Error()
 		return res
 	}
 
@@ -26,39 +37,49 @@ func (*{{.ControllerName}}) Add(param map[string]interface{}) *model.ResData {
 func (*{{.ControllerName}}) List(param map[string]interface{}) *model.ResData {
 	res := new(model.ResData)
 
-	list := make([]*model.{{.ModelName}}, 0)
-	err := db.DbRW.Where(
-        &model.{{.ModelName}} : {
+	page := getIntValue(param, "page")
+	pageSize := getIntValue(param, "page_size")
+	
+	list := make([]*{{.ModelName}}, 0)
 
+	condition := &{{.ModelName}}{
              // 搜索参数
             {{ range .Record.Cols }}
                 {{ if .Queryable }}
-                    {{Cap .Prop}} : {{ if ge .Type 1}}getIntValue{{else}}getStringValue{{end}}(param, "{{.Prop}}"),
+                    {{Sneak2Camcel .Prop}} : {{ if eq .Type 1}}getIntValue{{else}}getStringValue{{end}}(param, "{{.Prop}}"),
                 {{end}}
             {{end}}
 
         }
-    ).Find(&list).Error
+
+	err := db.DbRW.Offset((page - 1) * pageSize).Limit(pageSize).Order("id desc").Where(condition).Find(&list).Error
 	if err != nil {
 		res.Code = errors.ErrorUnknow
-		res.Msg = "检测下请求数据格式"
+		res.Msg = err.Error()
+		return res
+	}
+
+	total := int32(0)
+	if err := db.DbRW.Model(condition).Where(condition).Count(&total).Error; err != nil {
+		res.Code = errors.ErrorUnknow
+		res.Msg = err.Error()
 		return res
 	}
 
 	res.Datas = list
-	res.Total = int32(len(list))
+	res.Total = total
 	return res
 }
 
 func (*{{.ControllerName}}) Delete(param map[string]interface{}) *model.ResData {
 	res := new(model.ResData)
 	id := getIntValue(param, "id")
-	err := db.DbRW.Delete(&model.{{.ModelName}}{
+	err := db.DbRW.Delete(&{{.ModelName}}{
 		Model: gorm.Model{ID: uint(id)},
 	}).Error
 	if err != nil {
 		res.Code = errors.ErrorUnknow
-		res.Msg = "检测下请求数据格式"
+		res.Msg = err.Error()
 		return res
 	}
 

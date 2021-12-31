@@ -158,12 +158,12 @@ func main() {
 		},
 	}
 
-	t := template.Must(template.New("admin.txt").Funcs(fm).ParseFiles("view/admin.txt"))
+	t := template.Must(template.New("admin.tmpl").Funcs(fm).ParseFiles("view/admin.tmpl"))
 	if err := t.Execute(os.Stdout, View); err != nil {
 		panic(err)
 	}
 
-	t = template.Must(template.New("ctrl.txt").Funcs(fm).ParseFiles("view/ctrl.txt"))
+	t = template.Must(template.New("ctrl.tmpl").Funcs(fm).ParseFiles("view/ctrl.tmpl"))
 	if err := t.Execute(os.Stdout, View); err != nil {
 		panic(err)
 	}

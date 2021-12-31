@@ -17,7 +17,7 @@
               </el-select>
 
             {{else}}
-              <el-input clearable v-model{{if eq .Type 1}}.number{{end}}="query.{{ .Prop}}" {{if ne .Placeholder ""}}placeholder="{{ .Placeholder}}" {{end}}></el-input>
+              <el-input clearable v-model{{if eq .Type 1}}.number{{end}}="query.{{ .Prop}}" {{if ne .Placeholder "" }}placeholder="{{ .Placeholder}}" {{end}}></el-input>
             {{end}}
 
         </el-form-item> 
